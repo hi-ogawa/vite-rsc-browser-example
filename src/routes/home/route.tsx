@@ -6,9 +6,9 @@ export default function Home() {
   return (
     <main className="mx-auto max-w-screen-xl px-4 py-8 lg:py-12">
       <article className="prose mx-auto">
-        <h1>React Server Components Examples</h1>
+        <h1>React Router RSC in Browser</h1>
 
-        <h2>1. Server Component (Default)</h2>
+        <h2>1. Server Component</h2>
         <ServerGreeting />
 
         <h2>2. Client Component</h2>

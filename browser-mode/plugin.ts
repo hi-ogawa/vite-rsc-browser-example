@@ -1,0 +1,117 @@
+import { normalizePath, type Plugin } from "vite";
+import path from "node:path";
+import { rmSync } from "node:fs";
+
+export default function rscBrowserModePlugin(): Plugin[] {
+  return [
+    {
+      name: "rsc-browser-mode",
+      config() {
+        return {
+          appType: "spa",
+          environments: {
+            client: {
+              build: {
+                emptyOutDir: false,
+              },
+            },
+            // TODO: server build is not hashed
+            rsc: {
+              build: {
+                outDir: "dist/client/__server",
+              },
+              keepProcessEnv: false,
+              resolve: {
+                noExternal: true,
+                builtins: [],
+              },
+              optimizeDeps: {
+                esbuildOptions: {
+                  platform: "neutral",
+                },
+              },
+            },
+          },
+          rsc: {
+            serverHandler: false,
+          },
+        };
+      },
+      configResolved(config) {
+        // avoid globalThis.AsyncLocalStorage injection in browser mode
+        const plugin = config.plugins.find(
+          (p) => p.name === "rsc:inject-async-local-storage",
+        );
+        delete plugin!.transform;
+      },
+      configureServer(server) {
+        server.middlewares.use(async (req, res, next) => {
+          const url = new URL(req.url ?? "/", "https://any.local");
+          if (url.pathname === "/@vite/invoke-rsc") {
+            const payload = JSON.parse(url.searchParams.get("data")!);
+            const result =
+              await server.environments["rsc"]!.hot.handleInvoke(payload);
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify(result));
+            return;
+          }
+          next();
+        });
+      },
+      buildApp: {
+        order: "pre",
+        async handler() {
+          // clean up nested outDir
+          rmSync("./dist", { recursive: true, force: true });
+        },
+      },
+    },
+    {
+      name: "rsc-browser-mode:polyfill",
+      resolveId: {
+        order: "pre",
+        handler(source) {
+          if (source === "node:async_hooks") {
+            return this.resolve("/browser-mode/polyfill-node-async-hooks.js");
+          }
+        },
+      },
+    },
+    {
+      name: "rsc-browser-mode:load-rsc",
+      resolveId(source) {
+        if (source === "virtual:vite-rsc-browser-mode/load-rsc") {
+          if (this.environment.mode === "dev") {
+            return this.resolve("/browser-mode/dev-proxy");
+          }
+          return { id: source, external: true };
+        }
+      },
+      renderChunk(code, chunk) {
+        if (code.includes("virtual:vite-rsc-browser-mode/load-rsc")) {
+          const config = this.environment.getTopLevelConfig();
+          const replacement = normalizeRelativePath(
+            path.relative(
+              path.join(
+                config.environments.client.build.outDir,
+                chunk.fileName,
+                "..",
+              ),
+              path.join(config.environments.rsc.build.outDir, "index.js"),
+            ),
+          );
+          code = code.replaceAll(
+            "virtual:vite-rsc-browser-mode/load-rsc",
+            () => replacement,
+          );
+          return { code };
+        }
+      },
+    },
+  ];
+}
+
+function normalizeRelativePath(s: string): string {
+  s = normalizePath(s);
+  return s[0] === "." ? s : "./" + s;
+}

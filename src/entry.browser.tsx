@@ -15,20 +15,21 @@ import {
 } from "react-router";
 import { loadEntryRsc } from "../browser-mode/runtime";
 
-setServerCallback(
-  createCallServer({
-    createFromReadableStream,
-    createTemporaryReferenceSet,
-    encodeReply,
-  }),
-);
-
 async function fetchRsc(request: Request): Promise<Response> {
   const entry: typeof import("./entry.rsc") = await loadEntryRsc();
   return entry.default.fetch(request);
 }
 
 async function main() {
+  setServerCallback(
+    createCallServer({
+      createFromReadableStream,
+      createTemporaryReferenceSet,
+      encodeReply,
+      fetch: fetchRsc,
+    }),
+  );
+
   const url = new URL(window.location.href);
   url.pathname = url.pathname + ".rsc";
   const payload = await createFromFetch<RSCServerPayload>(
@@ -49,13 +50,13 @@ async function main() {
 
   if (import.meta.hot) {
     import.meta.hot.on("rsc:update", () => {
-      __reactRouterDataRouter.revalidate()
+      __reactRouterDataRouter.revalidate();
     });
   }
 }
 
 declare global {
-  var __reactRouterDataRouter: DataRouter
+  var __reactRouterDataRouter: DataRouter;
 }
 
 main();

@@ -17,4 +17,7 @@ export default defineConfig({
     }),
     devtoolsJson(),
   ],
+  optimizeDeps: {
+    include: ["react-router", "react-router/internal/react-server-client"],
+  },
 });

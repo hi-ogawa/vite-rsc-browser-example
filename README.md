@@ -2,6 +2,8 @@
 
 An experimental example demonstrating React Server Components (RSC) running entirely in the browser using `@vitejs/plugin-rsc`.
 
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/hi-ogawa/vite-rsc-browser-example)
+
 ## Getting Started
 
 ```sh

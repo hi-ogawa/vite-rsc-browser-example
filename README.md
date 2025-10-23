@@ -25,7 +25,6 @@ React Router RSC API's `fetch` override (e.g. `<RSCHydratedRouter fetch={fetchRs
 
 - Some RSC features (e.g., `React.cache`) rely on `AsyncLocalStorage`, which is not available in browsers.
 - The build output `dist/client/__server` contains non-hashed files (`index.js`, `__vite_rsc_assets_manifest.js`).
-- During development, the RSC module runner in the browser requests too much `/@vite/invoke-rsc?...`, which may be slow.
 
 ## Related
 
